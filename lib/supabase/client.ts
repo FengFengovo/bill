@@ -10,15 +10,12 @@ export function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  // 在开发环境中进行检查
-  if (typeof window !== "undefined" && (!supabaseUrl || !supabaseAnonKey)) {
-    console.error("Missing Supabase environment variables");
-    console.error("NEXT_PUBLIC_SUPABASE_URL:", supabaseUrl);
-    console.error(
-      "NEXT_PUBLIC_SUPABASE_ANON_KEY:",
-      supabaseAnonKey ? "exists" : "missing"
+  // 如果环境变量缺失，抛出错误
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error(
+      "Missing Supabase environment variables. Please check your .env.local file or Vercel environment variables."
     );
   }
 
-  return createBrowserClient(supabaseUrl || "", supabaseAnonKey || "");
+  return createBrowserClient(supabaseUrl, supabaseAnonKey);
 }
