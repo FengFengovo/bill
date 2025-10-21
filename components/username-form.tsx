@@ -148,11 +148,11 @@ export function UsernameForm({ userId, currentUsername }: UsernameFormProps) {
             <AlertDialogDescription>
               确认要将用户名从{" "}
               <span className="font-semibold text-foreground">
-                "{currentUsername}"
+                &quot;{currentUsername}&quot;
               </span>{" "}
               修改为{" "}
               <span className="font-semibold text-foreground">
-                "{username.trim()}"
+                &quot;{username.trim()}&quot;
               </span>{" "}
               吗？
             </AlertDialogDescription>
