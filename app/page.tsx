@@ -16,9 +16,6 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { ForgotPasswordDialog } from "@/components/forgot-password-dialog";
 
-// 强制动态渲染
-export const dynamic = "force-dynamic";
-
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,11 +27,22 @@ export default function LoginPage() {
     "success"
   );
   const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const [supabase, setSupabase] = useState<ReturnType<
+    typeof createClient
+  > | null>(null);
   const router = useRouter();
-  const supabase = createClient();
+
+  // 在客户端初始化 Supabase 客户端
+  useEffect(() => {
+    setSupabase(createClient());
+  }, []);
 
   // 检查用户是否已登录
   useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+
     const checkUser = async () => {
       try {
         const {
@@ -58,6 +66,9 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!supabase) {
+      return;
+    }
     setLoading(true);
     setMessage("");
 
@@ -79,6 +90,9 @@ export default function LoginPage() {
   };
 
   const handleSignUp = async () => {
+    if (!supabase) {
+      return;
+    }
     setLoading(true);
     setMessage("");
 
@@ -96,7 +110,7 @@ export default function LoginPage() {
       return;
     }
 
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
