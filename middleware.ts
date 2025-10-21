@@ -9,11 +9,12 @@ export const config = {
   matcher: [
     /*
      * 匹配所有请求路径，除了以下开头的：
+     * - api (API 路由)
      * - _next/static (静态文件)
      * - _next/image (图片优化文件)
      * - favicon.ico (网站图标文件)
-     * 可以根据需要修改此匹配器
+     * - 静态资源文件
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };
