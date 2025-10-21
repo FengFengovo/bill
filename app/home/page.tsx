@@ -167,34 +167,6 @@ export default function HomePage() {
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 min-h-full">
       <div className="max-w-lg mx-auto p-4 pb-20 space-y-4">
-        {/* 用户信息卡片 */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16 border-2 border-primary">
-                {user.user_metadata?.avatar_url ? (
-                  <AvatarImage
-                    src={user.user_metadata.avatar_url}
-                    alt="用户头像"
-                  />
-                ) : null}
-                <AvatarFallback className="text-xl bg-primary text-primary-foreground">
-                  {user.email?.[0].toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <CardTitle className="text-lg">
-                  {user.email?.split("@")[0]}
-                </CardTitle>
-                <CardDescription>{user.email}</CardDescription>
-              </div>
-              <Badge variant="default" className="bg-green-600">
-                在线
-              </Badge>
-            </div>
-          </CardHeader>
-        </Card>
-
         {/* 快速统计 */}
         <div className="grid grid-cols-2 gap-4">
           <Card>
@@ -217,10 +189,7 @@ export default function HomePage() {
 
         {/* 快速操作 */}
         <Card>
-          <CardHeader>
-            <CardTitle>快速操作</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3">
+          <CardContent className="grid grid-cols-1 gap-3">
             <AddBillDialog onSuccess={loadData}>
               <Button size="lg" className="h-20">
                 <div className="flex flex-col items-center gap-1">
@@ -229,15 +198,6 @@ export default function HomePage() {
                 </div>
               </Button>
             </AddBillDialog>
-
-            <Button asChild size="lg" variant="outline" className="h-20">
-              <Link href="/home/stats">
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-2xl">📊</span>
-                  <span>查看统计</span>
-                </div>
-              </Link>
-            </Button>
           </CardContent>
         </Card>
 

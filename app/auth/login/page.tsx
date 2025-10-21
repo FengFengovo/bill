@@ -44,7 +44,7 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setMessage(`登录失败: ${error.message}`);
+      setMessage(`登录失败: 请检查用户名或密码`);
       setMessageType("error");
     } else {
       setMessage("登录成功！");
@@ -91,14 +91,12 @@ export default function LoginPage() {
       setMessageType("error");
       setLoading(false);
     } else {
-      // 注册成功，跳转到成功页面
-      if (data.user) {
-        router.push("/auth/success");
-      } else {
-        setMessage("注册成功！请查看邮箱确认。");
-        setMessageType("success");
-        setLoading(false);
-      }
+      // 注册成功，提示用户查看邮箱确认
+      setMessage(
+        "注册成功！我们已向您的邮箱发送了一封确认邮件，请查看邮箱并点击链接完成注册。"
+      );
+      setMessageType("success");
+      setLoading(false);
     }
   };
 

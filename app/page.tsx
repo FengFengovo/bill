@@ -1,6 +1,8 @@
-import Image from "next/image";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+"use client";
+
+import { createClient } from "@/lib/supabase/client";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -9,216 +11,274 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ForgotPasswordDialog } from "@/components/forgot-password-dialog";
 
-export default async function Home() {
-  const supabase = await createClient();
+// 强制动态渲染
+export const dynamic = "force-dynamic";
 
-  // 获取当前用户信息（如果已登录）
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error">(
+    "success"
+  );
+  const [isSignUpMode, setIsSignUpMode] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
+
+  // 检查用户是否已登录
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (user) {
+          // 用户已登录，跳转到 home 页面
+          router.push("/home");
+        } else {
+          setCheckingAuth(false);
+        }
+      } catch (error) {
+        console.error("检查登录状态失败:", error);
+        setCheckingAuth(false);
+      }
+    };
+
+    checkUser();
+  }, [router, supabase]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setMessage(`登录失败: ${error.message}`);
+      setMessageType("error");
+      setLoading(false);
+    } else {
+      setMessage("登录成功！");
+      setMessageType("success");
+      router.push("/home");
+      router.refresh();
+    }
+  };
+
+  const handleSignUp = async () => {
+    setLoading(true);
+    setMessage("");
+
+    if (password !== confirmPassword) {
+      setMessage("两次输入的密码不一致，请重新输入");
+      setMessageType("error");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 6) {
+      setMessage("密码长度至少为6位");
+      setMessageType("error");
+      setLoading(false);
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        data: {
+          email,
+        },
+      },
+    });
+
+    if (error) {
+      setMessage(`注册失败: ${error.message}`);
+      setMessageType("error");
+      setLoading(false);
+    } else {
+      // 注册成功，提示用户查看邮箱确认
+      setMessage(
+        "注册成功！我们已向您的邮箱发送了一封确认邮件，请查看邮箱并点击链接完成注册。"
+      );
+      setMessageType("success");
+      setLoading(false);
+    }
+  };
+
+  // 正在检查登录状态时显示加载界面
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">正在检查登录状态...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="font-sans min-h-screen p-8 pb-20 sm:p-20">
-      <main className="max-w-4xl mx-auto space-y-8">
-        {/* Logo */}
-        <div className="flex justify-center sm:justify-start">
-          <Image
-            className="dark:invert"
-            src="/next.svg"
-            alt="Next.js logo"
-            width={180}
-            height={38}
-            priority
-          />
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold text-center">
+            {isSignUpMode ? "创建新账户" : "欢迎回来"}
+          </CardTitle>
+          <CardDescription className="text-center">
+            {isSignUpMode
+              ? "填写信息创建你的账户"
+              : "登录到你的账户或创建一个新账户"}
+          </CardDescription>
+        </CardHeader>
 
-        {/* Supabase 连接状态卡片 */}
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Supabase 连接状态
-              {user ? (
-                <Badge variant="default" className="bg-green-600">
-                  已连接
-                </Badge>
-              ) : (
-                <Badge variant="secondary">未登录</Badge>
-              )}
-            </CardTitle>
-            <CardDescription>
-              {user
-                ? "您已成功登录并连接到 Supabase"
-                : "Supabase 已配置，请登录以继续"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {user ? (
-              <>
-                <div className="flex items-center gap-4 mb-4">
-                  <Avatar className="h-16 w-16 border-2 border-primary">
-                    {user.user_metadata?.avatar_url ? (
-                      <AvatarImage
-                        src={user.user_metadata.avatar_url}
-                        alt="用户头像"
-                      />
-                    ) : null}
-                    <AvatarFallback className="text-xl bg-primary text-primary-foreground">
-                      {user.email?.[0].toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="font-medium">{user.email}</div>
-                    <div className="text-sm text-muted-foreground">
-                      欢迎回来！
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">邮箱地址</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder=""
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">密码</Label>
+                {!isSignUpMode && (
+                  <ForgotPasswordDialog>
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline"
+                    >
+                      忘记密码？
+                    </button>
+                  </ForgotPasswordDialog>
+                )}
+              </div>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete={
+                  isSignUpMode ? "new-password" : "current-password"
+                }
+                required
+                placeholder=""
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            {isSignUpMode && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">确认密码</Label>
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  placeholder=""
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+            )}
+
+            {message && (
+              <div
+                className={`text-sm text-center p-3 rounded-md ${
+                  messageType === "success"
+                    ? "bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                    : "bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-400"
+                }`}
+              >
+                {message}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {!isSignUpMode ? (
+                <>
+                  <Button type="submit" disabled={loading} className="w-full">
+                    {loading ? "处理中..." : "登录"}
+                  </Button>
+
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <Separator />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        或者
+                      </span>
                     </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-muted-foreground">
-                      用户 ID:
-                    </span>
-                    <code className="text-sm bg-muted px-2 py-1 rounded">
-                      {user.id}
-                    </code>
-                  </div>
-                </div>
 
-                <Separator />
-                <div className="flex gap-2">
-                  <Button asChild className="flex-1">
-                    <Link href="/profile">查看资料</Link>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setIsSignUpMode(true);
+                      setMessage("");
+                    }}
+                    disabled={loading}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    创建新账户
                   </Button>
-                  <Button asChild variant="outline" className="flex-1">
-                    <Link href="/auth/login">退出登录</Link>
+                </>
+              ) : (
+                <>
+                  <Button
+                    type="button"
+                    onClick={handleSignUp}
+                    disabled={loading}
+                    className="w-full"
+                  >
+                    {loading ? "处理中..." : "确认注册"}
                   </Button>
-                </div>
-              </>
-            ) : (
-              <Button asChild className="w-full">
-                <Link href="/auth/login">登录 / 注册</Link>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* 快速开始指南 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>快速开始</CardTitle>
-            <CardDescription>按照以下步骤配置您的应用</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ol className="space-y-3 text-sm">
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-                  1
-                </span>
-                <span>
-                  配置 Supabase：编辑{" "}
-                  <code className="bg-muted px-2 py-0.5 rounded font-mono text-xs">
-                    .env.local
-                  </code>
-                </span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-                  2
-                </span>
-                <span>添加你的 Supabase URL 和 Anon Key</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-                  3
-                </span>
-                <span>开始构建你的应用！</span>
-              </li>
-            </ol>
-          </CardContent>
-        </Card>
-
-        {/* 操作按钮 */}
-        <div className="flex gap-4 flex-col sm:flex-row">
-          <Button asChild size="lg" className="flex-1">
-            <a
-              href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Image
-                className="dark:invert mr-2"
-                src="/vercel.svg"
-                alt="Vercel logomark"
-                width={20}
-                height={20}
-              />
-              Deploy now
-            </a>
-          </Button>
-          <Button asChild variant="outline" size="lg" className="flex-1">
-            <a
-              href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Read our docs
-            </a>
-          </Button>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="mt-16 flex gap-6 flex-wrap items-center justify-center text-sm text-muted-foreground">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setIsSignUpMode(false);
+                      setConfirmPassword("");
+                      setMessage("");
+                    }}
+                    disabled={loading}
+                    variant="outline"
+                    className="w-full"
+                  >
+                    返回登录
+                  </Button>
+                </>
+              )}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

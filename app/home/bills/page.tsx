@@ -15,6 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AddBillDialog } from "@/components/add-bill-dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+import {
   Utensils,
   Car,
   ShoppingBag,
@@ -48,8 +56,12 @@ export default function BillsPage() {
 
   // 获取当前月份
   const now = new Date();
-  const currentYear = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+
+  // 生成年份选项（最近5年）
+  const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
   const loadBills = useCallback(async () => {
     try {
@@ -65,20 +77,41 @@ export default function BillsPage() {
         return;
       }
 
-      const monthStart = `${currentYear}-${String(currentMonth).padStart(
+      // 计算月份的第一天和最后一天
+      const monthStart = `${selectedYear}-${String(selectedMonth).padStart(
         2,
         "0"
       )}-01`;
-      const monthEnd = `${currentYear}-${String(currentMonth).padStart(
+
+      // 获取当前月的最后一天（避免时区问题）
+      const nextMonth = selectedMonth === 12 ? 1 : selectedMonth + 1;
+      const nextMonthYear =
+        selectedMonth === 12 ? selectedYear + 1 : selectedYear;
+      const lastDayOfMonth = new Date(
+        nextMonthYear,
+        nextMonth - 1,
+        0
+      ).getDate();
+      const monthEnd = `${selectedYear}-${String(selectedMonth).padStart(
         2,
         "0"
-      )}-31`;
+      )}-${String(lastDayOfMonth).padStart(2, "0")}`;
+
+      console.log("查询日期范围:", {
+        monthStart,
+        monthEnd,
+        selectedYear,
+        selectedMonth,
+        userId: user.id,
+      });
 
       const { data, error } = await supabase
         .from("bills")
         .select("*")
+        .eq("user_id", user.id)
         .gte("date", monthStart)
         .lte("date", monthEnd)
+
         .order("date", { ascending: false })
         .order("created_at", { ascending: false });
 
@@ -106,7 +139,7 @@ export default function BillsPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, currentYear, currentMonth]);
+  }, [router, selectedYear, selectedMonth]);
 
   useEffect(() => {
     loadBills();
@@ -193,9 +226,41 @@ export default function BillsPage() {
         {/* 月份统计 */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">
-              {currentYear}年{currentMonth}月
-            </CardTitle>
+            <div className="flex items-center justify-between mb-2">
+              <CardTitle className="text-lg">账单统计</CardTitle>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={String(selectedYear)}
+                  onValueChange={(value) => setSelectedYear(Number(value))}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={String(year)}>
+                        {year}年
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={String(selectedMonth)}
+                  onValueChange={(value) => setSelectedMonth(Number(value))}
+                >
+                  <SelectTrigger className="w-[90px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month) => (
+                      <SelectItem key={month} value={String(month)}>
+                        {month}月
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <CardDescription>
               支出 ¥{formatAmount(totalExpense)} | 收入 ¥
               {formatAmount(totalIncome)}

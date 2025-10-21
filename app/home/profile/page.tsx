@@ -15,6 +15,9 @@ import { AvatarUpload } from "@/components/avatar-upload";
 import Link from "next/link";
 import { ChevronRight, LogOut } from "lucide-react";
 
+// 强制动态渲染，避免构建时预渲染导致环境变量缺失
+export const dynamic = "force-dynamic";
+
 export default async function ProfilePage() {
   const supabase = await createClient();
 
@@ -39,7 +42,7 @@ export default async function ProfilePage() {
               />
               <div className="text-center">
                 <CardTitle className="text-xl mb-1">
-                  {user.email?.split("@")[0]}
+                  {user.user_metadata?.username || user.email?.split("@")[0]}
                 </CardTitle>
                 <CardDescription className="flex items-center justify-center gap-2">
                   {user.email}
