@@ -93,12 +93,12 @@ export default function ResetPasswordPage() {
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
-      if (error) {
-        setMessage(`密码重置失败: ${error.message}`);
+      if (updateError) {
+        setMessage(`密码重置失败: ${updateError.message}`);
         setMessageType("error");
       } else {
         setMessage("密码重置成功！即将跳转到登录页面...");
@@ -111,6 +111,7 @@ export default function ResetPasswordPage() {
         }, 2000);
       }
     } catch (error) {
+      console.error("密码重置错误:", error);
       setMessage("密码重置失败，请稍后重试");
       setMessageType("error");
     } finally {
